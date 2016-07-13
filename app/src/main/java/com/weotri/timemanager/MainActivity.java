@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-/*
+
         sharedPref = this.getPreferences(this.MODE_PRIVATE);
         sharedPrefEdit = sharedPref.edit();
         jsonList = sharedPref.getString(listName, "");
@@ -63,13 +63,11 @@ public class MainActivity extends AppCompatActivity {
             listContent = new ArrayList<String[]>();
         }else {
             listContent = gson.fromJson(jsonList, type);
-        }*/
+        }
 
-        listContent = new ArrayList<String[]>();
         listAdapter = new Adapter3Col(this, listContent);
 
         list = (ListView) findViewById(R.id.list);
-//        listAdapter = new Adapter3Col(this,);
         list.setAdapter(listAdapter);
 
         inflater = this.getLayoutInflater();
@@ -89,17 +87,14 @@ public class MainActivity extends AppCompatActivity {
                         .setPositiveButton(R.string.add, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
-//                                EditText editText = (EditText) dialogView.findViewById(R.id.text_input1);
-//                                String text = editText.getText().toString();
                                 String[] array = new String[textInputFields.length];
-//                                   /* jsonList = gson.toJson(listContent);
-//                                    sharedPrefEdit.putString(listName, jsonList);
-//                                    sharedPrefEdit.commit();
-//                                    listAdapter.notifyDataSetChanged();)*/
                                 for(int j = 0; j < textInputFields.length; j++){
                                     array[j] = ((TextView) dialogView.findViewById(textInputFields[j])).getText().toString();
                                 }
                                 listContent.add(array);
+                                jsonList = gson.toJson(listContent);
+                                sharedPrefEdit.putString(listName, jsonList);
+                                sharedPrefEdit.commit();
                                 listAdapter.notifyDataSetChanged();
                             }
                         }).show();
@@ -118,11 +113,11 @@ public class MainActivity extends AppCompatActivity {
                            @Override
                            public void onClick(DialogInterface dialogInterface, int i) {
                                listContent.remove(positionToRemove);
-                          /*     jsonList = gson.toJson(listContent);
+                               jsonList = gson.toJson(listContent);
                                sharedPrefEdit.remove(listName);
                                sharedPrefEdit.putString(listName, jsonList);
                                sharedPrefEdit.commit();
-                               listAdapter.notifyDataSetChanged();*/
+                               listAdapter.notifyDataSetChanged();
                            }
                         })
                         .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {

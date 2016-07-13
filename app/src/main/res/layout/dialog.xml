@@ -6,14 +6,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
     <EditText
+        android:hint="Task Name"
         android:id="@+id/text_input1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
+
+    <!--TODO: Change to time picker-->
     <EditText
+        android:hint="Estimate (minutes) "
+        android:inputType="number"
         android:id="@+id/text_input2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
+
     <EditText
+        android:hint="Actual Time (minutes)"
+        android:inputType="number"
         android:id="@+id/text_input3"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
