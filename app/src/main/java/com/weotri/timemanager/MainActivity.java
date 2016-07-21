@@ -4,20 +4,25 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import java.util.Calendar;
+
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.ContextMenu;
+import com.weotri.timemanager.Task;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -27,40 +32,55 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
-import java.sql.Array;
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
     public final String listName = "taskList";
     ListView list;
-    ArrayList<String[]> listContent;
+    ArrayList<Task> listContent;
     Adapter3Col listAdapter;
     LayoutInflater inflater;
     View dialogView;
     SharedPreferences sharedPref;
+    Gson gson;
+    Handler timer;
     AlertDialog.Builder newTaskBuilder;
-    AlertDialog.Builder removeTaskBuilder;
     String jsonList;
     SharedPreferences.Editor sharedPrefEdit;
-    int[] textInputFields = {R.id.text_input1, R.id.text_input2, R.id.text_input3};
+    int[] textInputFields = {R.id.text_input1, R.id.text_input2};
+    Comparator<ArrayList<Long>> customComparator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        customComparator =  new Comparator<ArrayList<Long>>() {
+            @Override
+            public int compare(ArrayList<Long> list1, ArrayList<Long> list2) {
+                long index1 = list1.get(0);
+                long index2 = list2.get(0);
+                if(index1 > index2){
+                    return 1;
+                }else if(index1 < index2){
+                    return -1;
+                }else {
+                    return 0;
+                }
+            }
+        };
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
         sharedPref = this.getPreferences(this.MODE_PRIVATE);
         sharedPrefEdit = sharedPref.edit();
         jsonList = sharedPref.getString(listName, "");
-        final Gson gson = new Gson();
-        Type type = new TypeToken<ArrayList<String[]>>() {}.getType();
+        gson = new Gson();
+        Type type = new TypeToken<ArrayList<Task>>() {}.getType();
         if(jsonList.equals("")){
-            listContent = new ArrayList<String[]>();
+            listContent = new ArrayList<Task>();
         }else {
             listContent = gson.fromJson(jsonList, type);
         }
@@ -69,6 +89,8 @@ public class MainActivity extends AppCompatActivity {
 
         list = (ListView) findViewById(R.id.list);
         list.setAdapter(listAdapter);
+        this.registerForContextMenu(list);
+
 
         inflater = this.getLayoutInflater();
         newTaskBuilder = new AlertDialog.Builder(this);
@@ -91,7 +113,10 @@ public class MainActivity extends AppCompatActivity {
                                 for(int j = 0; j < textInputFields.length; j++){
                                     array[j] = ((TextView) dialogView.findViewById(textInputFields[j])).getText().toString();
                                 }
-                                listContent.add(array);
+                                String name = ((TextView) dialogView.findViewById(textInputFields[0])).getText().toString();
+                                String estimate = ((TextView) dialogView.findViewById(textInputFields[1])).getText().toString();
+                                Task task = new Task(name, Integer.parseInt(estimate));
+                                listContent.add(task);
                                 jsonList = gson.toJson(listContent);
                                 sharedPrefEdit.putString(listName, jsonList);
                                 sharedPrefEdit.commit();
@@ -101,34 +126,88 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        removeTaskBuilder = new AlertDialog.Builder(this);
-
-        list.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+        timer = new Handler();
+        timer.postDelayed(new Runnable() {
             @Override
-            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
-                final int positionToRemove = i;
-                removeTaskBuilder.setTitle(R.string.delete_question)
-                        .setMessage(R.string.delete_prompt)
-                        .setPositiveButton(R.string.confirm, new DialogInterface.OnClickListener() {
-                           @Override
-                           public void onClick(DialogInterface dialogInterface, int i) {
-                               listContent.remove(positionToRemove);
-                               jsonList = gson.toJson(listContent);
-                               sharedPrefEdit.remove(listName);
-                               sharedPrefEdit.putString(listName, jsonList);
-                               sharedPrefEdit.commit();
-                               listAdapter.notifyDataSetChanged();
-                           }
-                        })
-                        .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-
-                            }
-                        }).show();
-                return false;
+            public void run() {
+                Log.d("info", "Timers updated");
+                listAdapter.notifyDataSetChanged();
+                jsonList = gson.toJson(listContent);
+                sharedPrefEdit.putString(listName, jsonList);
+                sharedPrefEdit.apply();
+                timer.postDelayed(this, 10000);
             }
-        });
+        }, 10000);
+
+    }
+
+    @Override
+    public void onCreateContextMenu(final ContextMenu menu, final View v, final ContextMenu.ContextMenuInfo menuInfo){
+        super.onCreateContextMenu(menu, v, menuInfo);
+
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.context_menu, menu);
+
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
+        int status = listContent.get(info.position).getStatus();
+        switch (status) {
+            case Task.ACTIVE:
+                menu.findItem(R.id.action_resume).setVisible(false);
+                menu.findItem(R.id.action_start).setVisible(false);
+                break;
+            case Task.ENDED:
+                menu.findItem(R.id.action_pause).setVisible(false);
+                menu.findItem(R.id.action_resume).setVisible(false);
+                menu.findItem(R.id.action_start).setVisible(false);
+                menu.findItem(R.id.action_stop).setVisible(false);
+                break;
+            case Task.NOT_STARTED:
+                menu.findItem(R.id.action_stop).setVisible(false);
+                menu.findItem(R.id.action_pause).setVisible(false);
+                menu.findItem(R.id.action_resume).setVisible(false);
+                break;
+            case Task.PAUSED:
+                menu.findItem(R.id.action_pause).setVisible(false);
+                menu.findItem(R.id.action_start).setVisible(false);
+                menu.findItem(R.id.action_stop).setVisible(false);
+                break;
+        }
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item){
+        final AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        switch (item.getItemId()){
+            case R.id.action_delete:
+                listContent.remove(info.position);
+                jsonList = gson.toJson(listContent);
+                sharedPrefEdit.remove(listName);
+                sharedPrefEdit.putString(listName, jsonList);
+                sharedPrefEdit.commit();
+                listAdapter.notifyDataSetChanged();
+                Log.d("info", "Task at position " + info.position + " removed");
+                return true;
+            case R.id.action_start:
+                listContent.get(info.position).start();
+                Log.d("info", "Task at position " + info.position + " added");
+                return true;
+            case R.id.action_stop:
+                listContent.get(info.position).end();
+                Log.d("info", "Task at position " + info.position + " ended");
+                return true;
+            case R.id.action_pause:
+                listContent.get(info.position).pause();
+                Log.d("info", "Task at position " + info.position + " paused");
+                return true;
+            case R.id.action_resume:
+                listContent.get(info.position).resume();
+                Log.d("info", "Task at position " + info.position + " resumed");
+                return true;
+            default:
+                return super.onContextItemSelected(item);
+
+        }
+
     }
 
     @Override
@@ -161,26 +240,25 @@ public class MainActivity extends AppCompatActivity {
         date.setText(DateFormat.getDateInstance(1).format(new Date()));
     }
 
-
-}
-/*
-class TwoDArrayAdapter extends ArrayAdapter<>{
-    public ArrayList<String[]>(){
-
+    @Override
+    protected void onStop(){
+        super.onStop();
+        Log.d("info", "Stopped called");
+        timer.removeCallbacksAndMessages(null);
     }
-}
 
-*/
+
+}
 
 class Adapter3Col extends BaseAdapter {
 
     Context context;
-    ArrayList<String[]> data;
+    ArrayList<Task> data;
     int[] textFields = {R.id.text1, R.id.text2, R.id.text3};
 
     private static LayoutInflater inflater = null;
 
-    public Adapter3Col(Context context, ArrayList<String[]> data) {
+    public Adapter3Col(Context context, ArrayList<Task> data) {
         this.context = context;
         this.data = data;
         inflater = (LayoutInflater) context
@@ -196,13 +274,13 @@ class Adapter3Col extends BaseAdapter {
     @Override
     public Object getItem(int position) {
         // TODO Auto-generated method stub
-        return data.get(0)[position];
+        return data.get(position);
     }
 
     @Override
     public long getItemId(int position) {
         // TODO Auto-generated method stub
-        return position;
+        return data.get(position).getID();
     }
 
     @Override
@@ -212,13 +290,10 @@ class Adapter3Col extends BaseAdapter {
         if (vi == null)
             vi = inflater.inflate(R.layout.list_textview, null);
 
-        for(int i = 0; i < data.get(position).length; i++){
-            TextView text = null;
+        ((TextView) vi.findViewById(textFields[0])).setText(data.get(position).name);
+        ((TextView) vi.findViewById(textFields[1])).setText(data.get(position).estimate + "");
+        ((TextView) vi.findViewById(textFields[2])).setText(data.get(position).getTime());
 
-            text = (TextView) vi.findViewById(textFields[i]);
-
-            text.setText(data.get(position)[i]);
-        }
 
         return vi;
     }
