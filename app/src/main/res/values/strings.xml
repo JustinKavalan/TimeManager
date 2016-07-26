@@ -15,4 +15,14 @@
     <string name="action_stop">Stop</string>
     <string name="action_resume">Resume</string>
     <string name="action_pause">Pause</string>
+    <string name="NOT_STARTED">NOT STARTED</string>
+    <string name="ACTIVE">ACTIVE</string>
+    <string name="PAUSED">PAUSED</string>
+    <string name="STOPPED">STOPPED</string>
+    <string name="UNKNOWN">UNKNOWN</string>
+    <string name="actual">Actual</string>
+    <string name="estimate">Estimate</string>
+    <string name="name">Name</string>
+    <string name="status">Status</string>
+    <string name="rename">Rename</string>
 </resources>

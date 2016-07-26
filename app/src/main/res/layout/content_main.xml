@@ -34,21 +34,28 @@
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:text="Name"/>
+            android:text="@string/name"/>
 
         <TextView
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:text="Estimate"/>
+            android:text="@string/estimate"/>
 
         <TextView
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:text="Actual"/>
+            android:text="@string/actual"/>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textStyle="bold"
+            android:text="@string/status"/>
 
     </LinearLayout>
 

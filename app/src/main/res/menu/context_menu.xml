@@ -12,6 +12,10 @@
         android:title="@string/action_pause"/>
 
     <item
+        android:id="@+id/action_rename"
+        android:title="@string/rename"/>
+
+    <item
         android:id="@+id/action_resume"
         android:title="@string/action_resume"/>
 
