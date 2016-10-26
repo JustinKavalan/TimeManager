@@ -27,35 +27,48 @@ public class Task{
         this.name = name;
         this.estimate = estimate;
         this.status = status;
-        id = 0;
+        id = -1;
     }
 
     public Task(String name, int estimate){
         this.name = name;
         this.estimate = estimate;
         status = NOT_STARTED;
-        id = 0;
+        id = -1;
+    }
+
+    public Task(String name, int elapsed, int estimate, long startTime, int status, long id, int timeUntilPaused, long resumeTime){
+        this.name = name;
+        this.elapsed = elapsed;
+        this.estimate = estimate;
+        this.startTime = startTime;
+        this.status = status;
+        this.id = id;
+        this.timeUntilPaused = timeUntilPaused;
+        this.resumeTime = resumeTime;
     }
 
     public Task(String name){
         this.name = name;
         status = NOT_STARTED;
-        id = 0;
+        id = -1;
+    }
+
+    public int getElapsed(){
+        return elapsed;
     }
 
     public long getID() {
         return id;
     }
 
-    public String getTime(){
-        if(status == ACTIVE) {
-            Log.d("debug", resumeTime + " " + System.currentTimeMillis() + " " + timeUntilPaused);
-            long millisecondsPassed = System.currentTimeMillis() - resumeTime;
-            elapsed = ((int) millisecondsPassed) / 1000 + timeUntilPaused;
-        }
-        return elapsed / 60 + ":" + elapsed % 60;
+    public long getResumeTime(){
+        return resumeTime;
     }
 
+    public long getStartTime(){
+        return startTime;
+    }
 
     public int getStatus(){
         return status;
@@ -77,6 +90,19 @@ public class Task{
         }
     }
 
+    public String getTime(){
+        if(status == ACTIVE) {
+            Log.d("debug", resumeTime + " " + System.currentTimeMillis() + " " + timeUntilPaused);
+            long millisecondsPassed = System.currentTimeMillis() - resumeTime;
+            elapsed = ((int) millisecondsPassed) / 1000 + timeUntilPaused;
+        }
+        return elapsed / 60 + ":" + elapsed % 60;
+    }
+
+    public long getTimeUntilPaused(){
+        return timeUntilPaused;
+    }
+
     public void pause(){
         status = PAUSED;
         timeUntilPaused = elapsed;
@@ -89,6 +115,15 @@ public class Task{
 
     public void setName(String newName){
         name = newName;
+    }
+
+    public boolean setID(long id){
+        if(this.id == -1){
+            this.id = id;
+            return true;
+        }
+        Log.d("info", "Tried to set ID when ID was already set!");
+        return false;
     }
 
     public void start(){

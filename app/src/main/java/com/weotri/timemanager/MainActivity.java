@@ -1,7 +1,9 @@
 package com.weotri.timemanager;
 
+import android.content.ContentValues;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
+//import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
@@ -34,14 +36,15 @@ public class MainActivity extends AppCompatActivity {
     Adapter3Col listAdapter;
     LayoutInflater inflater;
     View newTaskDialogView;
-    SharedPreferences sharedPref;
+//    SharedPreferences sharedPref;
     Gson gson;
     Handler timer;
     AlertDialog.Builder newTaskBuilder;
-    String jsonList;
-    SharedPreferences.Editor sharedPrefEdit;
+//    String jsonList;
+//    SharedPreferences.Editor sharedPrefEdit;
     int[] textInputFields = {R.id.text_input1, R.id.text_input2};
     Comparator<ArrayList<Long>> customComparator;
+    FeedReaderDbHelper mDbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,18 +64,12 @@ public class MainActivity extends AppCompatActivity {
         };
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mDbHelper = new FeedReaderDbHelper(this);
+        listContent = mDbHelper.readDB();
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        sharedPref = this.getPreferences(this.MODE_PRIVATE);
-        sharedPrefEdit = sharedPref.edit();
-        jsonList = sharedPref.getString(listName, "");
-        gson = new Gson();
-        Type type = new TypeToken<ArrayList<Task>>() {}.getType();
-        if(jsonList.equals("")){
-            listContent = new ArrayList<Task>();
-        }else {
-            listContent = gson.fromJson(jsonList, type);
-        }
 
         listAdapter = new Adapter3Col(this, listContent);
 
@@ -111,9 +108,7 @@ public class MainActivity extends AppCompatActivity {
                                     task = new Task(name, Integer.parseInt(estimate));
                                 }
                                 listContent.add(task);
-                                jsonList = gson.toJson(listContent);
-                                sharedPrefEdit.putString(listName, jsonList);
-                                sharedPrefEdit.commit();
+                                mDbHelper.addToDB(task);
                                 listAdapter.notifyDataSetChanged();
                             }
                         }).show();
@@ -159,30 +154,23 @@ public class MainActivity extends AppCompatActivity {
         final AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
         switch (item.getItemId()){
             case R.id.action_delete:
+                mDbHelper.deleteRow(listContent.get(info.position).getID());
                 listContent.remove(info.position);
-                jsonList = gson.toJson(listContent);
-                sharedPrefEdit.remove(listName);
-                sharedPrefEdit.putString(listName, jsonList);
-                sharedPrefEdit.commit();
-                listAdapter.notifyDataSetChanged();
                 Log.d("info", "Task at position " + info.position + " removed");
                 listAdapter.notifyDataSetChanged();
                 return true;
             case R.id.action_start:
                 listContent.get(info.position).start();
                 Log.d("info", "Task at position " + info.position + " added");
-                listAdapter.notifyDataSetChanged();
-                return true;
+                break;
             case R.id.action_stop:
                 listContent.get(info.position).end();
                 Log.d("info", "Task at position " + info.position + " ended");
-                listAdapter.notifyDataSetChanged();
-                return true;
+                break;
             case R.id.action_pause:
                 listContent.get(info.position).pause();
                 Log.d("info", "Task at position " + info.position + " paused");
-                listAdapter.notifyDataSetChanged();
-                return true;
+                break;
             case R.id.action_rename:
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 final View renameDialogView = this.getLayoutInflater().inflate(R.layout.dialog_rename, null);
@@ -202,15 +190,19 @@ public class MainActivity extends AppCompatActivity {
                             listAdapter.notifyDataSetChanged();
                         }
                     }).show();
+                break;
             case R.id.action_resume:
                 listContent.get(info.position).resume();
                 Log.d("info", "Task at position " + info.position + " resumed");
-                listAdapter.notifyDataSetChanged();
-                return true;
+                break;
             default:
                 return super.onContextItemSelected(item);
-
         }
+
+        mDbHelper.updateDB(listContent.get(info.position));
+        listAdapter.notifyDataSetChanged();
+
+        return true;
 
     }
 
@@ -249,9 +241,9 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 Log.d("info", "Timers updated");
                 listAdapter.notifyDataSetChanged();
-                jsonList = gson.toJson(listContent);
-                sharedPrefEdit.putString(listName, jsonList);
-                sharedPrefEdit.apply();
+//                jsonList = gson.toJson(listContent);
+//                sharedPrefEdit.putString(listName, jsonList);
+//                sharedPrefEdit.apply();
                 timer.postDelayed(this, 10000);
             }
         }, 10000);
@@ -262,7 +254,6 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
         Log.d("info", "Stopped called");
         timer.removeCallbacksAndMessages(null);
-
     }
 
 
